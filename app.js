@@ -115,10 +115,84 @@ const elements = {
 // Initialize Application
 document.addEventListener('DOMContentLoaded', () => {
   loadState();
+  checkAndArchiveCompletedCard();
   initUI();
   setupEventListeners();
   renderAll();
 });
+
+function checkAndArchiveCompletedCard() {
+  if (!appState || !appState.days || appState.days.length === 0) return;
+  const today = new Date().toISOString().split('T')[0];
+  const timeline = calculateCardTimeline(appState.commencingDate);
+  
+  if (today > timeline.endStr) {
+    if (hasAnyDataLogged()) {
+      archiveActiveCard(true); // silent archive
+      const newCardId = appState.currentCardId < 7 ? appState.currentCardId + 1 : 1;
+      resetActiveBoardForNewCard(newCardId);
+      
+      const newTimeline = calculateCardTimeline(today);
+      resizeStateForNewTimeline(newTimeline.startStr);
+      saveState();
+      setTimeout(() => alert("Your previous card timeframe ended and was automatically archived. Welcome to your new card!"), 500);
+    } else {
+      const newTimeline = calculateCardTimeline(today);
+      resizeStateForNewTimeline(newTimeline.startStr);
+      saveState();
+    }
+  }
+}
+
+// Date logic helpers for dynamic card timelines
+function getSecondSunday(year, monthIndex) {
+  let date = new Date(year, monthIndex, 1);
+  let dayOfWeek = date.getDay();
+  let daysToFirstSunday = dayOfWeek === 0 ? 0 : 7 - dayOfWeek;
+  date.setDate(1 + daysToFirstSunday);
+  date.setDate(date.getDate() + 7); // Second Sunday
+  return date;
+}
+
+function toLocalISOString(date) {
+  const pad = n => n < 10 ? '0' + n : n;
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+function calculateCardTimeline(baseDateStr) {
+  const d = new Date(baseDateStr);
+  let year = d.getFullYear();
+  let month = d.getMonth();
+
+  let currentMonth2ndSunday = getSecondSunday(year, month);
+  let startOfCurrentMonthCard = new Date(currentMonth2ndSunday);
+  startOfCurrentMonthCard.setDate(startOfCurrentMonthCard.getDate() + 1);
+
+  let startMonth, startYear;
+  if (d < startOfCurrentMonthCard) {
+    if (month === 0) { startMonth = 11; startYear = year - 1; }
+    else { startMonth = month - 1; startYear = year; }
+  } else {
+    startMonth = month; startYear = year;
+  }
+
+  const startCard2ndSunday = getSecondSunday(startYear, startMonth);
+  const cardStart = new Date(startCard2ndSunday);
+  cardStart.setDate(cardStart.getDate() + 1);
+
+  let endMonth = startMonth === 11 ? 0 : startMonth + 1;
+  let endYear = startMonth === 11 ? startYear + 1 : startYear;
+  const cardEnd = getSecondSunday(endYear, endMonth);
+
+  const diffTime = Math.abs(cardEnd - cardStart);
+  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24)) + 1;
+  return {
+    startStr: toLocalISOString(cardStart),
+    endStr: toLocalISOString(cardEnd),
+    totalDays: diffDays,
+    totalWeeks: diffDays / 7
+  };
+}
 
 // Load state from localStorage
 function loadState() {
@@ -128,7 +202,7 @@ function loadState() {
       appState = JSON.parse(stored);
       
       // Perform state structure migrations (e.g. weaknesses, library, new fields)
-      if (!appState.days || appState.days.length !== 28) {
+      if (!appState.days || (appState.days.length !== 28 && appState.days.length !== 35)) {
         initDefaultState();
       } else {
         // Migration check for savedCards
@@ -167,9 +241,39 @@ function saveState() {
   localStorage.setItem('cbr_challenger_state', JSON.stringify(appState));
 }
 
+function resizeStateForNewTimeline(newStartDateStr) {
+  const timeline = calculateCardTimeline(newStartDateStr);
+  appState.commencingDate = timeline.startStr;
+  
+  // Resize weeks
+  while(appState.weeks.length < timeline.totalWeeks) {
+    appState.weeks.push({ weekNumber: appState.weeks.length + 1, sharedFid: false });
+  }
+  if (appState.weeks.length > timeline.totalWeeks) {
+    appState.weeks.length = timeline.totalWeeks;
+  }
+  
+  // Resize days
+  while(appState.days.length < timeline.totalDays) {
+    appState.days.push({
+      dayNumber: appState.days.length + 1,
+      wakingTime: "", morningChapters: 0, laterChapters: 0, bibleBook: "",
+      startChapter: 0, endChapter: 0, recitedMemory: false, fidJournaling: false,
+      prayer10mins: false, dataValidity: false, fidFocus: "", fidInsight: "",
+      fidDoing: "", scriptureMemorized: "", prayerTopic: "", cbId: "", cbSolution: "",
+      cbScripture: "", cbResolved: false, logTimestamp: null
+    });
+  }
+  if (appState.days.length > timeline.totalDays) {
+    appState.days.length = timeline.totalDays;
+  }
+}
+
 // Create a blank default state
 function initDefaultState() {
   const today = new Date().toISOString().split('T')[0];
+  const timeline = calculateCardTimeline(today);
+
   appState = {
     username: "Bible Reader",
     contact: "",
@@ -180,44 +284,16 @@ function initDefaultState() {
       { name: "", action: "" }
     ],
     currentCardId: 1,
-    commencingDate: today,
+    commencingDate: timeline.startStr,
     days: [],
-    weeks: [
-      { weekNumber: 1, sharedFid: false },
-      { weekNumber: 2, sharedFid: false },
-      { weekNumber: 3, sharedFid: false },
-      { weekNumber: 4, sharedFid: false }
-    ],
+    weeks: [],
     savedCards: [],
     theme: 'dark'
   };
 
-  // Generate 28 empty days
-  for (let i = 1; i <= 28; i++) {
-    appState.days.push({
-      dayNumber: i,
-      wakingTime: "",
-      morningChapters: 0,
-      laterChapters: 0,
-      bibleBook: "",
-      startChapter: 0,
-      endChapter: 0,
-      recitedMemory: false,
-      fidJournaling: false,
-      prayer10mins: false,
-      dataValidity: false,
-      fidFocus: "",
-      fidInsight: "",
-      fidDoing: "",
-      scriptureMemorized: "",
-      prayerTopic: "",
-      cbId: "",
-      cbSolution: "",
-      cbScripture: "",
-      cbResolved: false,
-      logTimestamp: null
-    });
-  }
+  // Generate dynamic weeks and days
+  resizeStateForNewTimeline(timeline.startStr);
+
   saveState();
 }
 
@@ -389,14 +465,22 @@ function setupEventListeners() {
 
   elements.cardSelector.addEventListener('change', () => {
     if (isViewingHistory) return;
-    appState.currentCardId = parseInt(elements.cardSelector.value, 10);
-    saveState();
+    
+    if (autoArchiveIfNeeded()) {
+      const newCardId = parseInt(elements.cardSelector.value, 10);
+      resetActiveBoardForNewCard(newCardId);
+    } else {
+      appState.currentCardId = parseInt(elements.cardSelector.value, 10);
+      saveState();
+    }
+    
     renderAll();
   });
   
   elements.commencingDateInput.addEventListener('change', () => {
     if (isViewingHistory) return;
-    appState.commencingDate = elements.commencingDateInput.value;
+    resizeStateForNewTimeline(elements.commencingDateInput.value);
+    elements.commencingDateInput.value = appState.commencingDate;
     saveState();
     renderAll();
   });
@@ -831,11 +915,27 @@ function renderHeaderAndKPIs() {
   elements.kpiTargetChapters.innerText = `${card.chaptersTarget} Chs / ${card.ertTarget}`;
   
   const completedDays = data.days.filter(d => d.wakingTime || (d.morningChapters + d.laterChapters) > 0).length;
-  elements.kpiCompletedDays.innerText = `${completedDays} / 28`;
+  elements.kpiCompletedDays.innerText = `${completedDays} / ${data.weeks.length * 7}`;
   
   const stats = calculateScores();
   elements.kpiTotalPoints.innerText = `${stats.totalScore} pts`;
   elements.kpiLaxityPoints.innerText = `${stats.totalLaxity} pts`;
+  
+  // Update chart week selector options
+  const sel = elements.weekSelectChart;
+  const prevVal = currentWeekForChart;
+  sel.innerHTML = '';
+  for (let w = 1; w <= data.weeks.length; w++) {
+    const opt = document.createElement('option');
+    opt.value = w;
+    opt.innerText = `Week ${w}`;
+    if (w === prevVal) opt.selected = true;
+    sel.appendChild(opt);
+  }
+  if (currentWeekForChart > data.weeks.length) {
+    currentWeekForChart = data.weeks.length;
+    sel.value = currentWeekForChart;
+  }
 }
 
 // Render the 28 Days Calendar Grid
@@ -845,7 +945,7 @@ function renderCalendarGrid() {
   const card = CBR_DATA.cards.find(c => c.cardId === data.currentCardId);
   const targetERT = timeStringToDecimal(card.ertTarget);
   
-  for (let w = 0; w < 4; w++) {
+  for (let w = 0; w < data.weeks.length; w++) {
     const weekNum = w + 1;
     const weekDiv = document.createElement('div');
     weekDiv.className = 'week-container';
@@ -1013,8 +1113,9 @@ function calculateScores() {
   
   // Rule: You only redeem a CB ONCE in a CARD
   const redeemedCbIds = new Set();
+  const totalWeeks = data.weeks.length;
   
-  for (let w = 0; w < 4; w++) {
+  for (let w = 0; w < totalWeeks; w++) {
     const startIdx = w * 7;
     const weekDays = data.days.slice(startIdx, startIdx + 7);
     
@@ -1084,6 +1185,15 @@ function renderScoringTable() {
   const stats = calculateScores();
   elements.scoringTableBody.innerHTML = '';
   
+  const headerRow = document.getElementById('score-table-header-row');
+  if (headerRow) {
+    headerRow.innerHTML = '<th>CBR Discipline Description</th>';
+    for (let w = 1; w <= stats.weeks.length; w++) {
+      headerRow.innerHTML += `<th class="text-center" style="width: 12%;">Week ${w}</th>`;
+    }
+    headerRow.innerHTML += '<th class="text-right" style="width: 15%;">Total Score</th>';
+  }
+  
   const disciplines = [
     { name: 'Perseverance (Chapters Read)', key: 'perseverance', max: 3, desc: 'Read ALL set chapters each day' },
     { name: 'Commitment (Early Rising)', key: 'commitment', max: 2, desc: 'Woke up at set ERT each day' },
@@ -1099,7 +1209,7 @@ function renderScoringTable() {
     tdName.innerHTML = `<strong>${disc.name}</strong><br><span style="font-size:0.75rem; color:var(--text-muted);">${disc.desc}</span>`;
     tr.appendChild(tdName);
     
-    for (let w = 0; w < 4; w++) {
+    for (let w = 0; w < stats.weeks.length; w++) {
       const tdScore = document.createElement('td');
       tdScore.className = 'text-center';
       const wStat = stats.weeks[w][disc.key];
@@ -1120,7 +1230,7 @@ function renderScoringTable() {
     const tdTot = document.createElement('td');
     tdTot.className = 'text-right';
     const totalDiscScore = stats.weeks.reduce((acc, curr) => acc + curr[disc.key].score, 0);
-    tdTot.innerHTML = `<strong>${totalDiscScore}</strong> / ${disc.max * 4}`;
+    tdTot.innerHTML = `<strong>${totalDiscScore}</strong> / ${disc.max * stats.weeks.length}`;
     tr.appendChild(tdTot);
     elements.scoringTableBody.appendChild(tr);
   });
@@ -1132,7 +1242,7 @@ function renderScoringTable() {
   tdTotalLabel.innerText = 'CBR GROWTH POINTS (Total Weekly Score)';
   trTotal.appendChild(tdTotalLabel);
   
-  for (let w = 0; w < 4; w++) {
+  for (let w = 0; w < stats.weeks.length; w++) {
     const tdWScore = document.createElement('td');
     tdWScore.className = 'text-center';
     tdWScore.innerHTML = `<strong>${stats.weeks[w].totalScore}</strong> / 10`;
@@ -1141,7 +1251,7 @@ function renderScoringTable() {
   
   const tdTotVal = document.createElement('td');
   tdTotVal.className = 'text-right';
-  tdTotVal.innerHTML = `<strong>${stats.totalScore}</strong> / 40`;
+  tdTotVal.innerHTML = `<strong>${stats.totalScore}</strong> / ${stats.weeks.length * 10}`;
   trTotal.appendChild(tdTotVal);
   elements.scoringTableBody.appendChild(trTotal);
   
@@ -1152,7 +1262,7 @@ function renderScoringTable() {
   tdLaxityLabel.innerText = 'Laxity (Deviation) Points Lost';
   trLaxity.appendChild(tdLaxityLabel);
   
-  for (let w = 0; w < 4; w++) {
+  for (let w = 0; w < stats.weeks.length; w++) {
     const tdWLaxity = document.createElement('td');
     tdWLaxity.className = 'text-center';
     tdWLaxity.innerText = stats.weeks[w].laxity;
@@ -1330,58 +1440,105 @@ function renderChart() {
 function renderLibraryList() {
   elements.libraryTableBody.innerHTML = '';
   
+  const emptyMsg = document.getElementById('history-empty-msg');
+  const progressContainer = document.getElementById('history-progress-bar-container');
+  
   if (!appState.savedCards || appState.savedCards.length === 0) {
-    elements.libraryTableBody.innerHTML = `
-      <tr>
-        <td colspan="6" style="text-align:center; color:var(--text-muted); padding: 1.5rem;">
-          No archived cards in library yet. Complete your current card to archive it!
-        </td>
-      </tr>
-    `;
+    elements.libraryTableBody.innerHTML = '';
+    if (emptyMsg) emptyMsg.style.display = 'block';
+    if (progressContainer) progressContainer.innerHTML = '';
     return;
   }
   
-  appState.savedCards.forEach((card, idx) => {
+  if (emptyMsg) emptyMsg.style.display = 'none';
+
+  // Build progress summary bars at the top
+  if (progressContainer) {
+    progressContainer.innerHTML = '';
+    const heading = document.createElement('p');
+    heading.style.cssText = 'font-size:0.72rem; color:var(--text-muted); margin-bottom:0.5rem; font-weight:600;';
+    heading.innerText = `Overall Progress — ${appState.savedCards.length} card(s) completed`;
+    progressContainer.appendChild(heading);
+    
+    appState.savedCards.forEach(card => {
+      const totalWeeks = card.weeks ? card.weeks.length : 4;
+      const maxScore = totalWeeks * 10;
+      const pct = Math.round((card.totalScore / maxScore) * 100);
+      const bar = document.createElement('div');
+      bar.style.cssText = 'margin-bottom:0.4rem;';
+      bar.innerHTML = `
+        <div style="display:flex;justify-content:space-between;font-size:0.7rem;color:var(--text-secondary);margin-bottom:2px;">
+          <span>Card ${card.cardId} · ${card.commencingDate}</span>
+          <span>${card.totalScore}/${maxScore} pts (${pct}%)</span>
+        </div>
+        <div style="background:rgba(var(--primary-rgb),0.12);border-radius:99px;height:6px;overflow:hidden;">
+          <div style="width:${pct}%;height:100%;background:var(--primary);border-radius:99px;transition:width 0.5s ease;"></div>
+        </div>`;
+      progressContainer.appendChild(bar);
+    });
+  }
+  
+  // Sort newest first
+  const sorted = [...appState.savedCards].reverse();
+  
+  sorted.forEach(card => {
     const tr = document.createElement('tr');
     
+    // Card round
     const tdCard = document.createElement('td');
-    tdCard.innerHTML = `<strong>Card ${card.cardId}</strong>`;
+    tdCard.innerHTML = `<strong>Card ${card.cardId}</strong><br><span style="font-size:0.68rem;color:var(--text-muted);">${card.username}</span>`;
     tr.appendChild(tdCard);
     
-    const tdCommence = document.createElement('td');
-    tdCommence.innerText = card.commencingDate;
-    tr.appendChild(tdCommence);
+    // Dates
+    const totalWeeks = card.weeks ? card.weeks.length : 4;
+    const endDate = (() => {
+      if (!card.commencingDate) return '—';
+      const d = new Date(card.commencingDate);
+      d.setDate(d.getDate() + (totalWeeks * 7) - 1);
+      return toLocalISOString(d);
+    })();
+    const tdDates = document.createElement('td');
+    tdDates.style.fontSize = '0.7rem';
+    tdDates.innerHTML = `${card.commencingDate}<br>→ ${endDate}`;
+    tr.appendChild(tdDates);
     
-    const tdName = document.createElement('td');
-    tdName.innerText = card.username;
-    tr.appendChild(tdName);
+    // Weeks
+    const tdWeeks = document.createElement('td');
+    tdWeeks.style.cssText = 'text-align:center; font-size:0.75rem;';
+    tdWeeks.innerText = `${totalWeeks}w`;
+    tr.appendChild(tdWeeks);
     
+    // Score
+    const maxScore = totalWeeks * 10;
+    const pct = Math.round((card.totalScore / maxScore) * 100);
+    const scoreColor = pct >= 70 ? 'var(--success)' : pct >= 40 ? 'var(--warning, #f59e0b)' : 'var(--danger)';
     const tdScore = document.createElement('td');
     tdScore.className = 'text-center';
-    tdScore.innerHTML = `<span style="color:var(--success); font-weight:700;">${card.totalScore}</span>`;
+    tdScore.innerHTML = `<span style="color:${scoreColor};font-weight:700;">${card.totalScore}</span><br><span style="font-size:0.65rem;color:var(--text-muted);">/${maxScore} (${pct}%)</span>`;
     tr.appendChild(tdScore);
     
+    // Laxity
     const tdLaxity = document.createElement('td');
     tdLaxity.className = 'text-center';
-    tdLaxity.innerHTML = `<span style="color:var(--danger); font-weight:700;">${card.totalLaxity}</span>`;
+    tdLaxity.innerHTML = `<span style="color:var(--danger);font-weight:700;">${card.totalLaxity}</span>`;
     tr.appendChild(tdLaxity);
     
+    // Actions
     const tdActions = document.createElement('td');
     tdActions.className = 'library-actions';
     
-    // View Button
     const btnView = document.createElement('button');
     btnView.className = 'btn btn-secondary btn-small';
-    btnView.innerText = '👁️ View';
+    btnView.innerText = '👁️';
+    btnView.title = 'View this card';
     btnView.addEventListener('click', () => loadHistoricalView(card.instanceId));
     tdActions.appendChild(btnView);
     
-    // Print Button
     const btnPrint = document.createElement('button');
     btnPrint.className = 'btn btn-secondary btn-small';
-    btnPrint.innerText = '🖨️ Print';
+    btnPrint.innerText = '🖨️';
+    btnPrint.title = 'Print this card';
     btnPrint.addEventListener('click', () => {
-      // Temporarily load this card and trigger printing
       historicalCardData = card;
       isViewingHistory = true;
       prepareAndPrintCard();
@@ -1390,12 +1547,11 @@ function renderLibraryList() {
     });
     tdActions.appendChild(btnPrint);
     
-    // Delete Button
     const btnDel = document.createElement('button');
     btnDel.className = 'btn btn-secondary btn-small';
-    btnDel.style.borderColor = 'rgba(var(--danger-rgb),0.3)';
-    btnDel.style.color = 'var(--danger)';
+    btnDel.style.cssText = 'border-color:rgba(var(--danger-rgb),0.3);color:var(--danger);';
     btnDel.innerText = '🗑️';
+    btnDel.title = 'Delete this archive';
     btnDel.addEventListener('click', () => deleteArchivedCard(card.instanceId));
     tdActions.appendChild(btnDel);
     
@@ -1404,41 +1560,80 @@ function renderLibraryList() {
   });
 }
 
-// Archive active card into local library database
-function archiveActiveCard() {
-  const stats = calculateScores();
-  const card = CBR_DATA.cards.find(c => c.cardId === appState.currentCardId);
+function hasAnyDataLogged() {
+  if (!appState || !appState.days) return false;
+  return appState.days.some(d => d.wakingTime || (d.morningChapters + d.laterChapters) > 0 || d.fidJournaling || d.prayer10mins || d.cbResolved);
+}
+
+function resetActiveBoardForNewCard(newCardId) {
+  const preserved = {
+    username: appState.username,
+    contact: appState.contact,
+    church: appState.church,
+    weaknesses: JSON.parse(JSON.stringify(appState.weaknesses)),
+    savedCards: appState.savedCards,
+    theme: appState.theme
+  };
   
-  if (confirm(`Archive active card (Card ${appState.currentCardId}) to history? Total Score: ${stats.totalScore} pts, Laxity: ${stats.totalLaxity} pts.`)) {
-    const archiveInstance = {
-      instanceId: `card_${appState.currentCardId}_${new Date().getTime()}`,
-      cardId: appState.currentCardId,
-      commencingDate: appState.commencingDate,
-      username: appState.username,
-      contact: appState.contact,
-      church: appState.church,
-      weaknesses: JSON.parse(JSON.stringify(appState.weaknesses)),
-      days: JSON.parse(JSON.stringify(appState.days)),
-      weeks: JSON.parse(JSON.stringify(appState.weeks)),
-      totalScore: stats.totalScore,
-      totalLaxity: stats.totalLaxity,
-      savedAt: new Date().toISOString()
-    };
-    
-    appState.savedCards.push(archiveInstance);
-    saveState();
+  const today = new Date().toISOString().split('T')[0];
+  const timeline = calculateCardTimeline(today);
+  
+  appState.currentCardId = newCardId;
+  appState.commencingDate = timeline.startStr;
+  appState.days = [];
+  appState.weeks = [];
+  
+  resizeStateForNewTimeline(timeline.startStr);
+  
+  Object.assign(appState, preserved);
+  saveState();
+}
+
+function autoArchiveIfNeeded() {
+  if (hasAnyDataLogged()) {
+    archiveActiveCard(true); // silent archive
+    return true;
+  }
+  return false;
+}
+
+// Archive active card into local library database
+function archiveActiveCard(silent = false) {
+  const stats = calculateScores();
+  
+  if (!silent && !confirm(`Archive active card (Card ${appState.currentCardId}) to history? Total Score: ${stats.totalScore} pts, Laxity: ${stats.totalLaxity} pts.`)) {
+    return false;
+  }
+  
+  const archiveInstance = {
+    instanceId: `card_${appState.currentCardId}_${new Date().getTime()}`,
+    cardId: appState.currentCardId,
+    commencingDate: appState.commencingDate,
+    username: appState.username,
+    contact: appState.contact,
+    church: appState.church,
+    weaknesses: JSON.parse(JSON.stringify(appState.weaknesses)),
+    days: JSON.parse(JSON.stringify(appState.days)),
+    weeks: JSON.parse(JSON.stringify(appState.weeks)),
+    totalScore: stats.totalScore,
+    totalLaxity: stats.totalLaxity,
+    savedAt: new Date().toISOString()
+  };
+  
+  appState.savedCards.push(archiveInstance);
+  saveState();
+  
+  if (!silent) {
     alert("Card successfully archived to your library!");
-    
-    // Offer to clear and upgrade to the next card round automatically
     if (appState.currentCardId < 7 && confirm(`Would you like to upgrade your active card to Card ${appState.currentCardId + 1} and clear logs?`)) {
-      appState.currentCardId = appState.currentCardId + 1;
-      resetActiveCardLogsOnly();
+      resetActiveBoardForNewCard(appState.currentCardId + 1);
     } else if (confirm("Would you like to reset/clear active card logs to start a new round?")) {
-      resetActiveCardLogsOnly();
+      resetActiveBoardForNewCard(appState.currentCardId);
     } else {
       renderAll();
     }
   }
+  return true;
 }
 
 // Clear logs of current active card (helper for archiving reset)

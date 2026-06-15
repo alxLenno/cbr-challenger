@@ -133,10 +133,7 @@
             <div>
               <label for="week-select-chart" style="font-size:0.8rem; color:var(--text-secondary); margin-right:0.5rem;">View Week:</label>
               <select id="week-select-chart" style="background:var(--panel-bg); color:var(--text-primary); border:1px solid var(--panel-border); border-radius:6px; padding:0.2rem 0.5rem; font-family:inherit;">
-                <option value="1">Week 1</option>
-                <option value="2">Week 2</option>
-                <option value="3">Week 3</option>
-                <option value="4">Week 4</option>
+                <!-- Dynamically populated -->
               </select>
             </div>
           </div>
@@ -166,13 +163,8 @@
           <div class="table-wrapper">
             <table class="score-table">
               <thead>
-                <tr>
-                  <th>CBR Discipline Description</th>
-                  <th class="text-center" style="width: 12%;">Week 1</th>
-                  <th class="text-center" style="width: 12%;">Week 2</th>
-                  <th class="text-center" style="width: 12%;">Week 3</th>
-                  <th class="text-center" style="width: 12%;">Week 4</th>
-                  <th class="text-right" style="width: 15%;">Total Score</th>
+                <tr id="score-table-header-row">
+                  <!-- Dynamically populated based on timeline length -->
                 </tr>
               </thead>
               <tbody id="scoring-table-body">
@@ -191,6 +183,7 @@
           <button class="tab-btn" data-tab="tab-barriers">Barriers (CB)</button>
           <button class="tab-btn" data-tab="tab-questions">Study Qs</button>
           <button class="tab-btn" data-tab="tab-persons">PERSONS</button>
+          <button class="tab-btn" data-tab="tab-history">📁 History</button>
         </div>
 
         <!-- Syllabus tab contents -->
@@ -263,34 +256,35 @@
             </div>
           </div>
         </div>
+
+        <!-- History tab contents -->
+        <div class="tab-content" id="tab-history">
+          <h3>Card History &amp; Progress</h3>
+          <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:1rem;">Auto-saved completed and switched cards. View, review, or delete past records.</p>
+          <div id="history-progress-bar-container" style="margin-bottom:1rem;"></div>
+          <div style="overflow-x:auto;">
+            <table class="library-table" style="font-size:0.75rem;">
+              <thead>
+                <tr>
+                  <th>Card</th>
+                  <th>Dates</th>
+                  <th>Weeks</th>
+                  <th class="text-center">Score</th>
+                  <th class="text-center">Laxity</th>
+                  <th class="text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="library-table-body">
+                <!-- Loaded dynamically -->
+              </tbody>
+            </table>
+          </div>
+          <p id="history-empty-msg" style="font-size:0.8rem; color:var(--text-muted); text-align:center; padding:1.5rem 0; display:none;">No archived cards yet. Complete or switch a card round to begin building history.</p>
+        </div>
       </aside>
     </main>
 
-    <!-- Challenger Cards Library -->
-    <section class="glass-panel" style="margin-top:1.5rem;" id="library-panel-section">
-      <div class="section-title">
-        <h3>Challenger Cards Archive Library</h3>
-      </div>
-      <p style="font-size:0.8rem; color:var(--text-secondary); margin-bottom:1rem;">View and download previous 4-week card instances you have archived.</p>
-      
-      <div class="table-wrapper">
-        <table class="library-table">
-          <thead>
-            <tr>
-              <th>Card Round</th>
-              <th>Commencing Date</th>
-              <th>Trainee Name</th>
-              <th class="text-center">Score</th>
-              <th class="text-center">Laxity</th>
-              <th class="text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="library-table-body">
-            <!-- Loaded dynamically from appState.savedCards -->
-          </tbody>
-        </table>
-      </div>
-    </section>
+    <!-- Library section moved into History tab in sidebar -->
 
     <!-- Data Management Panel -->
     <section class="glass-panel" style="margin-top:1.5rem;" id="data-management-section">
