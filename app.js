@@ -690,18 +690,13 @@ function checkTargetsAndToggleCbPanel() {
   const data = getActiveData();
   const card = CBR_DATA.cards.find(c => c.cardId === data.currentCardId);
   const targetERT = timeStringToDecimal(card.ertTarget);
-  const targetChapters = card.chaptersTarget;
   
   const currentERT = timeStringToDecimal(elements.inputWakingTime.value);
-  const morningChapters = parseInt(elements.inputMorningChapters.value, 10) || 0;
-  const laterChapters = parseInt(elements.inputLaterChapters.value, 10) || 0;
-  const totalChapters = morningChapters + laterChapters;
   
   let missedWaking = (currentERT !== null && currentERT > targetERT);
-  let missedChapters = (totalChapters < targetChapters);
-  const hasLoggedSomething = (elements.inputWakingTime.value !== "" || totalChapters > 0);
+  const hasLoggedTime = (elements.inputWakingTime.value !== "");
   
-  if (hasLoggedSomething && (missedWaking || missedChapters)) {
+  if (hasLoggedTime && missedWaking) {
     elements.cbTriggerBox.classList.add('visible');
   } else {
     elements.cbTriggerBox.classList.remove('visible');
