@@ -109,7 +109,12 @@ const elements = {
   btnReset: document.getElementById('btn-reset'),
   btnPrintCard: document.getElementById('btn-print-card'),
   btnArchiveCard: document.getElementById('btn-archive-card'),
-  themeToggle: document.getElementById('theme-toggle')
+  themeToggle: document.getElementById('theme-toggle'),
+  
+  // Mobile UI Elements
+  hamburgerBtn: document.getElementById('hamburger-btn'),
+  sidebarSection: document.getElementById('sidebar-section'),
+  mobileSidebarOverlay: document.getElementById('mobile-sidebar-overlay')
 };
 
 // Initialize Application
@@ -508,8 +513,27 @@ function setupEventListeners() {
           c.classList.remove('active');
         }
       });
+      
+      // On mobile, automatically close sidebar after making a selection
+      if (window.innerWidth <= 900 && elements.sidebarSection && elements.sidebarSection.classList.contains('open')) {
+        elements.sidebarSection.classList.remove('open');
+        if (elements.mobileSidebarOverlay) elements.mobileSidebarOverlay.classList.remove('open');
+      }
     });
   });
+
+  // Mobile Sidebar Toggle
+  if (elements.hamburgerBtn && elements.sidebarSection && elements.mobileSidebarOverlay) {
+    elements.hamburgerBtn.addEventListener('click', () => {
+      elements.sidebarSection.classList.add('open');
+      elements.mobileSidebarOverlay.classList.add('open');
+    });
+    
+    elements.mobileSidebarOverlay.addEventListener('click', () => {
+      elements.sidebarSection.classList.remove('open');
+      elements.mobileSidebarOverlay.classList.remove('open');
+    });
+  }
 
   // Modal Close
   elements.modalClose.addEventListener('click', closeModal);
@@ -888,6 +912,9 @@ function saveDayLog() {
     const weekIndex = Math.floor((currentEditingDayNum - 1) / 7);
     appState.weeks[weekIndex].sharedFid = elements.inputPeMeeting.checked;
   }
+  
+  // Auto-switch chart week to the currently edited week so updates are immediately visible
+  currentWeekForChart = Math.floor((currentEditingDayNum - 1) / 7) + 1;
   
   saveState();
   closeModal();
@@ -1369,56 +1396,50 @@ function renderChart() {
   targetLine.setAttribute('class', 'chart-target-line');
   svg.appendChild(targetLine);
   
-  let pathD = '';
-  let areaD = `M ${getX(0)} ${paddingTop + plotHeight} `;
+  const validPoints = [];
   const points = [];
   
   weekDays.forEach((day, index) => {
     const timeDec = timeStringToDecimal(day.wakingTime);
     const x = getX(index);
-    const y = getY(timeDec);
     
-    points.push({ x, y, val: day.wakingTime, index, dec: timeDec });
-    
-    if (index === 0) {
-      pathD += `M ${x} ${y} `;
+    if (timeDec !== null) {
+      const y = getY(timeDec);
+      validPoints.push({ x, y, val: day.wakingTime, index, dec: timeDec });
+      points.push({ x, y, val: day.wakingTime, index, dec: timeDec });
     } else {
-      pathD += `L ${x} ${y} `;
+      points.push({ x, y: null, val: null, index, dec: null });
     }
-    areaD += `L ${x} ${y} `;
   });
   
-  areaD += `L ${getX(6)} ${paddingTop + plotHeight} Z`;
-  
-  const areaPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  areaPath.setAttribute('d', areaD);
-  areaPath.setAttribute('class', 'chart-area');
-  svg.appendChild(areaPath);
-  
-  const strokePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  strokePath.setAttribute('d', pathD);
-  strokePath.setAttribute('class', 'chart-line');
-  svg.appendChild(strokePath);
+  if (validPoints.length > 0) {
+    let pathD = '';
+    let areaD = `M ${validPoints[0].x} ${paddingTop + plotHeight} `;
+    
+    validPoints.forEach((pt, i) => {
+      if (i === 0) {
+        pathD += `M ${pt.x} ${pt.y} `;
+      } else {
+        pathD += `L ${pt.x} ${pt.y} `;
+      }
+      areaD += `L ${pt.x} ${pt.y} `;
+    });
+    
+    areaD += `L ${validPoints[validPoints.length - 1].x} ${paddingTop + plotHeight} Z`;
+    
+    const areaPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    areaPath.setAttribute('d', areaD);
+    areaPath.setAttribute('class', 'chart-area');
+    svg.appendChild(areaPath);
+    
+    const strokePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    strokePath.setAttribute('d', pathD);
+    strokePath.setAttribute('class', 'chart-line');
+    svg.appendChild(strokePath);
+  }
   
   points.forEach(pt => {
-    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    circle.setAttribute('cx', pt.x);
-    circle.setAttribute('cy', pt.y);
-    circle.setAttribute('r', '5');
-    circle.setAttribute('class', 'chart-dot');
-    
-    let isOffTarget = pt.dec === null || pt.dec > targetERT;
-    if (isOffTarget) {
-      circle.classList.add('off-target');
-    }
-    
-    const tooltip = document.createElementNS('http://www.w3.org/2000/svg', 'title');
-    const dayLabel = weekStartIdx + pt.index + 1;
-    tooltip.textContent = `Day ${dayLabel}: Woke up at ${pt.val || 'Missed'} (Target: ${card.ertTarget})`;
-    circle.appendChild(tooltip);
-    circle.addEventListener('click', () => openDayModal(weekStartIdx + pt.index + 1));
-    svg.appendChild(circle);
-    
+    // X-axis day text (always draw)
     const dayText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     dayText.setAttribute('x', pt.x);
     dayText.setAttribute('y', height - 5);
@@ -1426,6 +1447,27 @@ function renderChart() {
     dayText.setAttribute('class', 'chart-axis-text');
     dayText.textContent = `D${weekStartIdx + pt.index + 1}`;
     svg.appendChild(dayText);
+
+    // Point and Tooltip (only if filled)
+    if (pt.dec !== null) {
+      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      circle.setAttribute('cx', pt.x);
+      circle.setAttribute('cy', pt.y);
+      circle.setAttribute('r', '5');
+      circle.setAttribute('class', 'chart-dot');
+      
+      let isOffTarget = pt.dec > targetERT;
+      if (isOffTarget) {
+        circle.classList.add('off-target');
+      }
+      
+      const tooltip = document.createElementNS('http://www.w3.org/2000/svg', 'title');
+      const dayLabel = weekStartIdx + pt.index + 1;
+      tooltip.textContent = `Day ${dayLabel}: Woke up at ${pt.val} (Target: ${card.ertTarget})`;
+      circle.appendChild(tooltip);
+      circle.addEventListener('click', () => openDayModal(weekStartIdx + pt.index + 1));
+      svg.appendChild(circle);
+    }
   });
   
   elements.chartContainer.appendChild(svg);

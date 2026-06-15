@@ -125,8 +125,16 @@ header {
   font-family: 'Outfit', sans-serif;
 }
 
+.brand-title {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
 .brand-title h1 {
   font-size: 1.5rem;
+  line-height: 1.2;
+  margin-bottom: 2px;
   background: linear-gradient(to right, var(--text-primary), var(--text-secondary));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -135,6 +143,8 @@ header {
 .brand-title p {
   font-size: 0.8rem;
   color: var(--text-muted);
+  line-height: 1.2;
+  margin-top: 2px;
 }
 
 .header-actions {
@@ -1170,3 +1180,204 @@ table.score-table tr.laxity-row {
   background: var(--text-muted);
 }
 
+/* =====================================================
+   MODERN ENTERPRISE SaaS OVERRIDE
+   Crisp, solid, high-contrast, data-dense professional design
+===================================================== */
+
+/* --- Kill orbs --- */
+.bg-orb { display: none !important; }
+
+/* --- Background: solid deep slate, no noise --- */
+body {
+  background-color: #090e17;
+  background-image: none;
+}
+.light-mode body {
+  background-color: #f8fafc;
+  background-image: none;
+}
+.dashboard-bg-grid { display: none; }
+
+/* --- Glass Panel → Clean Widget Card --- */
+.glass-panel {
+  background: #101623;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3), 0 2px 4px -2px rgba(0,0,0,0.2);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.light-mode .glass-panel {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px 0 rgba(0,0,0,0.1), 0 1px 2px -1px rgba(0,0,0,0.06);
+}
+
+/* --- Header: crisp enterprise topbar --- */
+header {
+  background: #0b101a;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
+}
+.light-mode header {
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+}
+.header-inner { gap: 1.5rem; }
+
+/* Brand */
+.logo-badge {
+  background: #f59e0b;
+  color: #000;
+  font-size: 0.95rem;
+  border-radius: 8px;
+  font-weight: 800;
+  box-shadow: 0 2px 5px rgba(245,158,11,0.3);
+}
+.brand-title h1 {
+  font-size: 1.15rem;
+  color: #f8fafc;
+  font-family: 'Inter', sans-serif;
+  letter-spacing: -0.01em;
+}
+.light-mode .brand-title h1 { color: #0f172a; }
+
+/* Header center stat pills */
+.header-center {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 1;
+  justify-content: center;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.header-center::-webkit-scrollbar { display: none; }
+
+.header-stat-pill {
+  background: #151c2c;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.7rem;
+  color: #94a3b8;
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.header-stat-pill strong { color: #f8fafc; font-weight: 700; }
+.header-stat-pill.danger { border-color: rgba(244,63,94,0.3); background: rgba(244,63,94,0.1); color: #fca5a5; }
+.header-stat-pill.danger strong { color: #f87171; }
+
+.light-mode .header-stat-pill { background: #f1f5f9; border-color: #cbd5e1; color: #475569; }
+.light-mode .header-stat-pill strong { color: #0f172a; }
+
+/* --- Page wrapper --- */
+.page-wrapper { padding-top: 1.5rem; padding-bottom: 3rem; }
+
+/* --- KPI Cards: bold & strict --- */
+.kpi-row { gap: 1rem; }
+.kpi-card {
+  background: #151c2c;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 10px;
+  padding: 1.25rem 1.5rem;
+}
+.light-mode .kpi-card { background: #ffffff; border-color: #e2e8f0; }
+.kpi-card::before { display: none; }
+.kpi-label { font-size: 0.75rem; letter-spacing: 0.05em; font-weight: 600; text-transform: uppercase; color: #94a3b8; }
+.light-mode .kpi-label { color: #64748b; }
+.kpi-val { font-size: 2.25rem; font-weight: 700; color: #f8fafc; font-family: 'Inter', sans-serif; letter-spacing: -0.02em; margin: 0.2rem 0; }
+.light-mode .kpi-val { color: #0f172a; }
+.kpi-sub { font-size: 0.7rem; color: #64748b; font-weight: 500; }
+
+/* --- Section titles --- */
+.section-title h2 {
+  font-size: 1.05rem;
+  color: #e2e8f0;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  letter-spacing: -0.01em;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  padding-bottom: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+.light-mode .section-title h2 { color: #0f172a; border-bottom-color: #e2e8f0; }
+
+/* --- Week containers & Days: data-table style --- */
+.week-container { background: transparent; border: none; border-radius: 0; }
+.week-header {
+  color: #94a3b8;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  margin-bottom: 1rem;
+}
+.light-mode .week-header { color: #64748b; border-bottom-color: #e2e8f0; }
+
+.day-block {
+  background: #151c2c;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 8px;
+  min-height: 90px;
+}
+.light-mode .day-block { background: #ffffff; border-color: #e2e8f0; }
+.day-block:hover { border-color: var(--primary); box-shadow: 0 4px 12px rgba(0,0,0,0.2); transform: translateY(-2px); }
+.day-date { font-weight: 600; color: #f1f5f9; font-size: 0.85rem; }
+.day-reading { color: #94a3b8; font-size: 0.75rem; }
+.light-mode .day-date { color: #0f172a; }
+.light-mode .day-reading { color: #475569; }
+
+/* --- Sidebar panel --- */
+.sidebar-panel { background: #111827; border-left: 1px solid rgba(255,255,255,0.08); }
+.light-mode .sidebar-panel { background: #f8fafc; border-left: 1px solid #e2e8f0; }
+
+/* Tabs */
+.tabs-header { border-bottom: 1px solid rgba(255,255,255,0.08); }
+.light-mode .tabs-header { border-bottom-color: #e2e8f0; }
+.tab-btn { font-size: 0.8rem; font-weight: 500; }
+
+/* --- Table Styles --- */
+table.score-table { width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; overflow: hidden; }
+table.score-table th, table.score-table td { padding: 0.75rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 0.85rem; }
+table.score-table th { background: #131a28; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.75rem; }
+table.score-table td { color: #e2e8f0; }
+.light-mode table.score-table { border-color: #e2e8f0; }
+.light-mode table.score-table th { background: #f1f5f9; color: #475569; border-bottom-color: #e2e8f0; }
+.light-mode table.score-table td { color: #0f172a; border-bottom-color: #e2e8f0; }
+
+/* --- Form elements --- */
+.profile-field label { color: #94a3b8; font-size: 0.8rem; font-weight: 500; }
+.form-group input, .form-group select, .form-group textarea, .profile-field input, .profile-field select {
+  background: #0d121c; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #f8fafc; font-size: 0.9rem; padding: 0.6rem 0.8rem;
+}
+.light-mode .form-group input, .light-mode .form-group select, .light-mode .form-group textarea, .light-mode .profile-field input, .light-mode .profile-field select {
+  background: #ffffff; border-color: #cbd5e1; color: #0f172a;
+}
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus, .profile-field input:focus, .profile-field select:focus {
+  border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px rgba(245,158,11,0.15);
+}
+
+/* --- Buttons --- */
+.btn { border-radius: 6px; font-weight: 500; font-size: 0.85rem; letter-spacing: 0; }
+.btn-primary { background: #f59e0b; color: #000; box-shadow: none; border: 1px solid transparent; }
+.btn-primary:hover { background: #fbbf24; transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+.btn-secondary { background: #1e293b; border: 1px solid #334155; color: #e2e8f0; }
+.btn-secondary:hover { background: #334155; border-color: #475569; color: #fff; }
+.light-mode .btn-secondary { background: #f8fafc; border-color: #e2e8f0; color: #475569; }
+.light-mode .btn-secondary:hover { background: #f1f5f9; border-color: #cbd5e1; color: #0f172a; }
+
+/* --- Modals --- */
+.modal-overlay { background: rgba(9,14,23,0.85); backdrop-filter: blur(4px); }
+.modal-content { background: #101623; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 20px 40px rgba(0,0,0,0.5); border-radius: 12px; }
+.light-mode .modal-content { background: #ffffff; border-color: #e2e8f0; }
+
+/* --- CB trigger box --- */
+.cb-trigger-box { background: rgba(244,63,94,0.05); border: 1px solid rgba(244,63,94,0.15); border-radius: 8px; }
