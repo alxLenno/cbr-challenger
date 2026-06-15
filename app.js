@@ -1765,7 +1765,7 @@ function importData(e) {
   fileReader.onload = function(event) {
     try {
       const parsed = JSON.parse(event.target.result);
-      if (parsed.days && parsed.days.length === 28) {
+      if (parsed.days && (parsed.days.length === 28 || parsed.days.length === 35)) {
         appState = parsed;
         
         // Ensure library structure exists in imported state
